@@ -1,0 +1,87 @@
+I)
+There are 34 features (after removing the dumb hothotel)
+
+['FACILITIES#CLEANLINESS', 'FACILITIES#COMFORT', 'FACILITIES#DESIGN&FEATURES', 'FACILITIES#GENERAL', 'FACILITIES#MISCELLANEOUS', 'FACILITIES#PRICES', 'FACILITIES#QUALITY', 'FOOD&DRINKS#MISCELLANEOUS', 'FOOD&DRINKS#PRICES', 'FOOD&DRINKS#QUALITY', 'FOOD&DRINKS#STYLE&OPTIONS', 'HOTEL#CLEANLINESS', 'HOTEL#COMFORT', 'HOTEL#DESIGN&FEATURES', 'HOTEL#GENERAL', 'HOTEL#MISCELLANEOUS', 'HOTEL#PRICES', 'HOTEL#QUALITY', 'LOCATION#GENERAL', 'ROOMS#CLEANLINESS', 'ROOMS#COMFORT', 'ROOMS#DESIGN&FEATURES', 'ROOMS#GENERAL', 'ROOMS#MISCELLANEOUS', 'ROOMS#PRICES', 'ROOMS#QUALITY', 'ROOM_AMENITIES#CLEANLINESS', 'ROOM_AMENITIES#COMFORT', 'ROOM_AMENITIES#DESIGN&FEATURES', 'ROOM_AMENITIES#GENERAL', 'ROOM_AMENITIES#MISCELLANEOUS', 'ROOM_AMENITIES#PRICES', 'ROOM_AMENITIES#QUALITY', 'SERVICE#GENERAL']
+
+There are 2948 reviews
+
+II)
+Each row in the CSV FILE contains reviews and their corresponding Aspect#Category,Polarity labels, with the value 1 demonstrating the existence of the Aspect#Category in the review associated with its Positive label, and the same for 2 and 3 for Negative and Neutral labels, respectively. Finally, the value 0 indicates that the Aspect#Category does not exist in the review.
+
+III)
+In the Vietnamese Preprocessing, you are using CPU to process whereas GPUs are much more preferable
+pipeline(
+            'text2text-generation', model='bmd1905/vietnamese-correction-v2', 
+            torch_dtype='bfloat16', device='cpu', num_workers=0
+        )
+
+IV) Some notes about the outconstruction
+For each Aspect#Category pair, we want to predict its sentiment from 4 classes: positive, negative, neutral and None
+For each review, you represent the sentiment for each Aspect#Category using a one-hot vector of size 4, where:
++ Position 0 (python-indexing) represents None (whether the considered pair Aspect#Category exists or not)
++ Position 1 represents Positive
++ Position 2 represents Negative
++ Position 3 represents Neutral
+
+If a certain aspect is mentioned with a Positive polarity, the vector would be [0, 1, 0, 0]. If it's not mentioned at all, the vector would be [1, 0, 0, 0] (None label).
+
+If an Aspect#Category exists in the review, position 0 (which corresponds to the "None" label) should indeed be 0 because the aspect is present in the review and has an actual polarity (Positive, Negative, or Neutral). 0 here means False and does not have any relationship with the 0 in the index to setiment mapping 
+
+The "None" label (position 0 = 1: True) is only used when the Aspect#Category is not present in the review at all. If an aspect exists and has any polarity, the "None" label will be 0.
+
+===> Then, we need to create C dense layers with 4 neurons for each to predict the sentiment of the corresponding aspect#category pair
+
+Softmax function will be applied here to get the probability distribution over the 4 polarity classes.
+
+!!! It is important to note that we will not simply feedforward the learned feature to each Dense layer one-by-one. Instead, we will concatenate them into a single Dense layer consisting of:
+34 Aspect#Categories × 4 Polarities = 136 neurons for the Hotel domain.
+12 Aspect#Categories × 4 Polarities = 48 neurons for the Restaurant domain.
+
+Finally, the binary_crossentropy loss function will be applied to treat each Dense layer in the final Concatenated Dense layer as a binary classification problem.
+~
+Let's investigate an example numerical output
+1) Suppose we have 
+Raw logits (before softmax) for Aspect#Category pair 1, this will be neuron (0-3)
+[2.5, 4.0, 1.2, 0.5]
+
+After going through the softmax layer, we have 
+[0.17,0.76,0.05,0.02]
+
+-> This is a positive-labelled pair 
+~
+Then Raw logits: [3.5, 1.0, 0.5, 2.0], corresponding to neuron 4-7
+
+After going through the softmax, we obtain [0.74, 0.6, 0.4, 0.16]
+
+This is a None-labelled pair, meaning the model predict this pair does not exists. 
+~
+Concatenation of Outputs: In this example, for two Aspect#Category pairs, we concatenate the outputs:
+
+For Aspect#Category pair 1: [0.17, 0.76, 0.05, 0.02]
+For Aspect#Category pair 2: [0.74, 0.06, 0.04, 0.16]
+After concatenation, these outputs form part of the 136 neurons for the hotel domain, with similar outputs for the remaining 32 Aspect#Category pairs.
+
+Softmax Importance: Softmax ensures that each Aspect#Category pair has a valid probability distribution over the four possible sentiment labels. Without softmax, the outputs could be arbitrary values without meaningfully summing to 1, making interpretation and training more difficult.
+
+Binary Crossentropy Loss: Each of the 136 neurons is trained using binary crossentropy. This means that each neuron independently predicts whether the corresponding polarity label is present (1) or absent (0) for the Aspect#Category, making it suitable for the multilabel classification problem (where multiple sentiments might or might not be present).
+
+V) An important question arises: why are we using both binary-crossentropy and softmax here, don't they conflict?
+
+Well, actually no. Although in this ACSA problem, each Aspect#Category,Polarity can represent an independent binary classification task (Is this Aspect#Category Positive or not?, Is this Aspect#Category Negative or not?, etc.).
+
+So instead of treating each Aspect#Category,Polarity as a separate output neuron with Sigmoid, why we one-hot encoded them within a single 4-neuron block for each and used Softmax? THIS IS BECAUSE THE SENTIMENTS ARE NOT ENTIRELY INDEPENTDENT OF EACH OTHER. 
++ If the Aspect#Category is strongly Positive, it's less likely to be Negative or Neutral.
++ If the Aspect#Category is very Negative, it's less likely to be Positive or Neutral.
+
+=> Using separate Sigmoids doesn't inherently capture this relationship. You could end up with outputs like: Positive=0.9, Negative=0.8, Neutral=0.7. This doesn't make sense because the polarities should be mutually exclusive and the sum of the probabilities should be 1, which is what Softmax does.
+
+VI) Why concat each Aspect#Category into 1 Dense layer and apply binary_crossentropy?
+The Concatenation mixes the independent Aspect#Category,Polarity information and allows the network to learn complex/shared relationships between them. For example, if the model sees that HOTEL#CLEANLINESS is Positive, it might be more likely to predict HOTEL#QUALITY as Positive as well.
+
+(Tại sao nó lại học được cái relationship này nhỉ? trong khi tất cả những gì nó làm là nhân ma trận và áp dụng một số hàm phi tuyết tính)
+
+When using this Concatenation, the binary_crossentropy will be applied to each output independently and the Softmax constraint is maintained during forward and backward passes for each Aspect#Category. This approach not only allows the model to learn to predict multiple Aspect#Category,Polarity simultaneously as binary classification problems but also maintains the mutual exclusivity of 4 polarities (summed to 1) within each Aspect#Category.
+
+
+
+
