@@ -1,6 +1,11 @@
 #Project-wise
 .DS_Store
 draft.py
+dummy datasets
+
+datasets/vlsp2018_hotel/1-VLSP2018-SA-Hotel-train.txt
+datasets/vlsp2018_hotel/2-VLSP2018-SA-Hotel-dev.txt
+datasets/vlsp2018_hotel/3-VLSP2018-SA-Hotel-test.txt
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

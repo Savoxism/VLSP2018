@@ -308,24 +308,13 @@ if __name__ == '__main__':
     
     preprocessor = VietnameseTextPreprocessor(vncorenlp_dir='./VnCoreNLP', extra_teencodes=extra_teencodes, max_correction_length=512)
     
-    def preprocess_reviews(reviews):
-        return preprocessor.process_batch(reviews, correct_errors=True)
-    
-    input_file = "datasets/vlsp2018_hotel/train.csv"
-    output_file = "datasets/vlsp2018_hotel/train_preprocessed.csv"
-    # Prepare the output CSV by writing the header first
-    df = pd.read_csv(input_file, nrows=1)
-    df.to_csv(output_file, index=False)
-
-    # Process the CSV file in chunks
-    chunksize = 100  # Adjust based on memory capacity
-    for chunk in pd.read_csv(input_file, chunksize=chunksize):
-        # Preprocess the "Review" column
-        chunk['Review'] = preprocess_reviews(chunk['Review'].tolist())
-        
-        # Append the cleaned chunk to the new CSV file
-        chunk.to_csv(output_file, mode='a', index=False, header=False)
+    sample_texts = [
+        'Ga giường không sạch, nhân viên quên dọn phòng một ngày. Chất lựơng "ko" đc thỏai mái 😔',
+        'Cám ơn Chudu24 rất nhiềuGia đình tôi có 1 kỳ nghỉ vui vẻ.Resort Bình Minh nằm ở vị trí rất đẹp, theo đúng tiêu chuẩn, còn về ăn sáng thì wa dở, chỉ có 2,3 món để chọn',
+        'Giá cả hợp líĂn uống thoả thíchGiữ xe miễn phíKhông gian bờ kè thoáng mát Có phòng máy lạnhMỗi tội lúc quán đông thì đợi hơi lâu',
+        'May lần trước ăn mì k hà, hôm nay ăn thử bún bắp bò. Có chả tôm viên ăn lạ lạ. Tôm thì k nhiều, nhưng vẫn có tôm thật ở nhân bên trong. ',
+        'Ngồi ăn Cơm nhà *tiền thân là quán Bão* Phần vậy là 59k nha. Trưa từ 10h-14h, chiều từ 16h-19h. À,có sữa hạt sen ngon lắmm. #food #foodpic #foodporn #foodholic #yummy #deliciuous'
+    ]
+    preprocessed_texts = preprocessor.process_batch(sample_texts, correct_errors=True)
     preprocessor.close_vncorenlp()
-    
-    print(f'Preprocessing completed. Cleaned data saved to {output_file}')
-    print(f'Example of preprocessed reviews:\n{pd.read_csv(output_file, nrows=5)}')
+    print(preprocessed_texts)

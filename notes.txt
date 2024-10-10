@@ -15,6 +15,19 @@ pipeline(
             torch_dtype='bfloat16', device='cpu', num_workers=0
         )
 
+b) In the VLSP2018 Preprocessing, in the preprocess_and_tokenize():
+Suppose we have batch_size = 1, max_length = 20,
+
+text_data = "This hotel has a great view of the beach."
+
+-> preprocessed_batch = ["hotel great view beach",] -> remove stopwords and normalize the text
+
+tokenizer(preprocessed_batch, max_length=max_length, padding='max_length', truncation=True)
+{
+  'input_ids': [101, 2003, 2307, 3191, 2482, 102, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  'attention_mask': [1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+}
+
 IV) Some notes about the outconstruction
 For each Aspect#Category pair, we want to predict its sentiment from 4 classes: positive, negative, neutral and None
 For each review, you represent the sentiment for each Aspect#Category using a one-hot vector of size 4, where:
