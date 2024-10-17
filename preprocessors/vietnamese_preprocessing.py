@@ -10,6 +10,8 @@ from io import StringIO
 from transformers import pipeline
 from vncorenlp import VnCoreNLP
 
+
+
 class VietnameseTextCleaner:
     VN_CHARS = 'áàảãạăắằẳẵặâấầẩẫậéèẻẽẹêếềểễệóòỏõọôốồổỗộơớờởỡợíìỉĩịúùủũụưứừửữựýỳỷỹỵđÁÀẢÃẠĂẮẰẲẴẶÂẤẦẨẪẬÉÈẺẼẸÊẾỀỂỄỆÓÒỎÕỌÔỐỒỔỖỘƠỚỜỞỠỢÍÌỈĨỊÚÙỦŨỤƯỨỪỬỮỰÝỲỶỸỴĐ'
     
@@ -180,6 +182,8 @@ class VietnameseTextPreprocessor:
         self._build_teencodes()
         
         self.max_correction_length = max_correction_length
+        
+        # This line is very vulnerable
         self.corrector = pipeline(
             'text2text-generation', model='bmd1905/vietnamese-correction-v2', 
             torch_dtype='bfloat16', device='cpu', num_workers=0
@@ -282,10 +286,18 @@ class VietnameseTextPreprocessor:
         return self.word_segment(text) if segment else text
     
     def process_batch(self, texts, correct_errors=True):
+        print("[INFO] Starting batch processing...")
         if correct_errors:
+            print("[DEBUG] Initial texts:", texts)
             texts = [self.process_text(text, normalize_tone=True, segment=False) for text in texts]
+            print("[DEBUG] Texts after initial processing:", texts)
+            # Correct errors on raw texts makes it more accurate
             texts = self.correct_vietnamese_errors(texts)
-            return [self.process_text(text, normalize_tone=False, segment=True) for text in texts]
+            print("[DEBUG] Texts after correction:", texts)
+            final_processed = [self.process_text(text, normalize_tone=False, segment=True) for text in texts]
+            print("[DEBUG] Final processed texts:", final_processed)
+            return final_processed
+        
         return [self.process_text(text, normalize_tone=True, segment=True) for text in texts]
         
     # Close VnCoreNLP

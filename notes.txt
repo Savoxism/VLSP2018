@@ -9,7 +9,7 @@ II)
 Each row in the CSV FILE contains reviews and their corresponding Aspect#Category,Polarity labels, with the value 1 demonstrating the existence of the Aspect#Category in the review associated with its Positive label, and the same for 2 and 3 for Negative and Neutral labels, respectively. Finally, the value 0 indicates that the Aspect#Category does not exist in the review.
 
 III)
-In the Vietnamese Preprocessing, you are using CPU to process whereas GPUs are much more preferable
+In the Vietnamese Preprocessing, you are using CPU to process though GPUs are much more preferable
 pipeline(
             'text2text-generation', model='bmd1905/vietnamese-correction-v2', 
             torch_dtype='bfloat16', device='cpu', num_workers=0

@@ -48,6 +48,7 @@ class VLSP2018Loader:
         print('[INFO] Transforming "Aspect#Categoy,Polarity" labels to flattened one-hot encoding...')
         model_input_names = ['input_ids', 'token_type_ids', 'attention_mask']
         label_columns = [col for col in datasets['train'].column_names if col not in ['Review', *model_input_names]]
+        
         def transform_each_review(review): 
             review['FlattenOneHotLabels'] = sum([
                 SentimentMapping.INDEX_TO_ONEHOT[review[aspect_category]] # Get one-hot encoding
@@ -91,6 +92,7 @@ if __name__ == "__main__":
     # restaurant_file = "datasets/vlsp2018_restaurant/train.txt"
     # VLSP2018Parser(restaurant_file).txt_to_csv()  
     
+    # Hotel Domain
     hotel_train_path = 'datasets/vlsp2018_hotel/1-VLSP2018-SA-Hotel-train.txt'
     hotel_dev_path = 'datasets/vlsp2018_hotel/2-VLSP2018-SA-Hotel-dev.txt'
     hotel_test_path = 'datasets/vlsp2018_hotel/3-VLSP2018-SA-Hotel-test.txt'
