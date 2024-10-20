@@ -38,6 +38,6 @@ class VLSP2018MultiTask(Model):
         return argmax_label_matrix(y_pred, self.multi_branch)
     
     def print_acsa_pred(self, y_pred):
-        polarities = map(lambda x: SentimentMapping.INDEX_TO_POLARITY[x], y_pred)
+        polarities = map(lambda x: SentimentMapping.INDEX_TO_SENTIMENT[x], y_pred)
         for aspect_category, polarity in zip(self.aspect_category_names, polarities): 
             if polarity: print(f'=> {aspect_category},{polarity}')

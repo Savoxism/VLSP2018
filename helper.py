@@ -30,7 +30,6 @@ def argmax_label_matrix(label_matrix, multi_branch=False):
         return np.argmax(y, axis=-1)
     return np.argmax(label_matrix, axis=-1).T
 
-
 def compute_class_weight(label_matrix, multi_branch=False, use_sample_weight=False):
     argmax_labels = argmax_label_matrix(label_matrix, multi_branch)
     if use_sample_weight: return compute_sample_weight('balanced', y=argmax_labels)

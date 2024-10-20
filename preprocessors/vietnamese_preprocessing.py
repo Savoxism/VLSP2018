@@ -3,14 +3,11 @@ import emoji
 import urllib
 import requests
 import regex as re
-
 import pandas as pd
 
 from io import StringIO
 from transformers import pipeline
 from vncorenlp import VnCoreNLP
-
-
 
 class VietnameseTextCleaner:
     VN_CHARS = 'áàảãạăắằẳẵặâấầẩẫậéèẻẽẹêếềểễệóòỏõọôốồổỗộơớờởỡợíìỉĩịúùủũụưứừửữựýỳỷỹỵđÁÀẢÃẠĂẮẰẲẴẶÂẤẦẨẪẬÉÈẺẼẸÊẾỀỂỄỆÓÒỎÕỌÔỐỒỔỖỘƠỚỜỞỠỢÍÌỈĨỊÚÙỦŨỤƯỨỪỬỮỰÝỲỶỸỴĐ'
@@ -185,21 +182,30 @@ class VietnameseTextPreprocessor:
         
         # This line is very vulnerable
         self.corrector = pipeline(
-            'text2text-generation', model='bmd1905/vietnamese-correction-v2', 
+            'text2text-generation', model='bmd1905/vietnamese-correction-v2',
             torch_dtype='bfloat16', device='cpu', num_workers=0
         )
+        # self.corrector = pipeline(
+        #     'text2text-generation', model='bmd1905/vietnamese-correction-v2',
+        #     torch_dtype='bfloat16', device_map='auto', num_workers=os.cpu_count()
+        # )
         print('bmd1905/vietnamese-correction-v2 is loaded successfully.')
         
     # Load VnCoreNLP Files
     def _load_vncorenlp(self):
         self.word_segmenter = None
-        if self._get_vncorenlp_files('/VnCoreNLP-1.2.jar') and \
-           self._get_vncorenlp_files('/models/wordsegmenter/vi-vocab') and \
-           self._get_vncorenlp_files('/models/wordsegmenter/wordsegmenter.rdr'):
-            self.word_segmenter = VnCoreNLP(self.vncorenlp_dir + '/VnCoreNLP-1.2.jar', annotators='wseg', quiet=False)
-            print('VnCoreNLP word segmenter is loaded successfully.')
-        else: print('Failed to load VnCoreNLP word segmenter.')
-        
+        try:
+            if self._get_vncorenlp_files('/VnCoreNLP-1.2.jar') and \
+                    self._get_vncorenlp_files('/models/wordsegmenter/vi-vocab') and \
+                    self._get_vncorenlp_files('/models/wordsegmenter/wordsegmenter.rdr'):
+                self.word_segmenter = VnCoreNLP(self.vncorenlp_dir + '/VnCoreNLP-1.2.jar', annotators='wseg',
+                                                quiet=False)
+                print('VnCoreNLP word segmenter is loaded successfully.')
+            else:
+                print('Failed to load VNCoreNLP files.')
+        except Exception as e:
+            print(f'Error loading VnCoreNLP: {e}')
+
     def _get_vncorenlp_files(self, url_slash):
         local_path = self.vncorenlp_dir + url_slash
         if os.path.exists(local_path): return True
@@ -286,16 +292,16 @@ class VietnameseTextPreprocessor:
         return self.word_segment(text) if segment else text
     
     def process_batch(self, texts, correct_errors=True):
-        print("[INFO] Starting batch processing...")
+        # print("[INFO] Starting batch processing...")
         if correct_errors:
-            print("[DEBUG] Initial texts:", texts)
+            # print("[DEBUG] Initial texts:", texts)
             texts = [self.process_text(text, normalize_tone=True, segment=False) for text in texts]
-            print("[DEBUG] Texts after initial processing:", texts)
+            # print("[DEBUG] Texts after initial processing:", texts)
             # Correct errors on raw texts makes it more accurate
             texts = self.correct_vietnamese_errors(texts)
-            print("[DEBUG] Texts after correction:", texts)
+            # print("[DEBUG] Texts after correction:", texts)
             final_processed = [self.process_text(text, normalize_tone=False, segment=True) for text in texts]
-            print("[DEBUG] Final processed texts:", final_processed)
+            # print("[DEBUG] Final processed texts:", final_processed)
             return final_processed
         
         return [self.process_text(text, normalize_tone=True, segment=True) for text in texts]
@@ -306,27 +312,27 @@ class VietnameseTextPreprocessor:
             print('Closing VnCoreNLP word segmenter...')
             self.word_segmenter.close()
             
-if __name__ == '__main__':
-    extra_teencodes = { 
-        'khách sạn': ['ks'], 'nhà hàng': ['nhahang'], 'nhân viên': ['nv'],
-        'cửa hàng': ['store', 'sop', 'shopE', 'shop'], 
-        'sản phẩm': ['sp', 'product'], 'hàng': ['hàg'],
-        'giao hàng': ['ship', 'delivery', 'síp'], 'đặt hàng': ['order'], 
-        'chuẩn chính hãng': ['authentic', 'aut', 'auth'], 'hạn sử dụng': ['date', 'hsd'],
-        'điện thoại': ['dt'],  'facebook': ['fb', 'face'],  
-        'nhắn tin': ['nt', 'ib'], 'trả lời': ['tl', 'trl', 'rep'], 
-        'feedback': ['fback', 'fedback'], 'sử dụng': ['sd'], 'xài': ['sài'], 
-    }
-    
-    preprocessor = VietnameseTextPreprocessor(vncorenlp_dir='./VnCoreNLP', extra_teencodes=extra_teencodes, max_correction_length=512)
-    
-    sample_texts = [
-        'Ga giường không sạch, nhân viên quên dọn phòng một ngày. Chất lựơng "ko" đc thỏai mái 😔',
-        'Cám ơn Chudu24 rất nhiềuGia đình tôi có 1 kỳ nghỉ vui vẻ.Resort Bình Minh nằm ở vị trí rất đẹp, theo đúng tiêu chuẩn, còn về ăn sáng thì wa dở, chỉ có 2,3 món để chọn',
-        'Giá cả hợp líĂn uống thoả thíchGiữ xe miễn phíKhông gian bờ kè thoáng mát Có phòng máy lạnhMỗi tội lúc quán đông thì đợi hơi lâu',
-        'May lần trước ăn mì k hà, hôm nay ăn thử bún bắp bò. Có chả tôm viên ăn lạ lạ. Tôm thì k nhiều, nhưng vẫn có tôm thật ở nhân bên trong. ',
-        'Ngồi ăn Cơm nhà *tiền thân là quán Bão* Phần vậy là 59k nha. Trưa từ 10h-14h, chiều từ 16h-19h. À,có sữa hạt sen ngon lắmm. #food #foodpic #foodporn #foodholic #yummy #deliciuous'
-    ]
-    preprocessed_texts = preprocessor.process_batch(sample_texts, correct_errors=True)
-    preprocessor.close_vncorenlp()
-    print(preprocessed_texts)
+# if __name__ == '__main__':
+#     extra_teencodes = {
+#         'khách sạn': ['ks'], 'nhà hàng': ['nhahang'], 'nhân viên': ['nv'],
+#         'cửa hàng': ['store', 'sop', 'shopE', 'shop'],
+#         'sản phẩm': ['sp', 'product'], 'hàng': ['hàg'],
+#         'giao hàng': ['ship', 'delivery', 'síp'], 'đặt hàng': ['order'],
+#         'chuẩn chính hãng': ['authentic', 'aut', 'auth'], 'hạn sử dụng': ['date', 'hsd'],
+#         'điện thoại': ['dt'],  'facebook': ['fb', 'face'],
+#         'nhắn tin': ['nt', 'ib'], 'trả lời': ['tl', 'trl', 'rep'],
+#         'feedback': ['fback', 'fedback'], 'sử dụng': ['sd'], 'xài': ['sài'],
+#     }
+#
+#     preprocessor = VietnameseTextPreprocessor(vncorenlp_dir='./VnCoreNLP', extra_teencodes=extra_teencodes, max_correction_length=512)
+#
+#     sample_texts = [
+#         'Ga giường không sạch, nhân viên quên dọn phòng một ngày. Chất lựơng "ko" đc thỏai mái 😔',
+#         'Cám ơn Chudu24 rất nhiềuGia đình tôi có 1 kỳ nghỉ vui vẻ.Resort Bình Minh nằm ở vị trí rất đẹp, theo đúng tiêu chuẩn, còn về ăn sáng thì wa dở, chỉ có 2,3 món để chọn',
+#         'Giá cả hợp líĂn uống thoả thíchGiữ xe miễn phíKhông gian bờ kè thoáng mát Có phòng máy lạnhMỗi tội lúc quán đông thì đợi hơi lâu',
+#         'May lần trước ăn mì k hà, hôm nay ăn thử bún bắp bò. Có chả tôm viên ăn lạ lạ. Tôm thì k nhiều, nhưng vẫn có tôm thật ở nhân bên trong. ',
+#         'Ngồi ăn Cơm nhà *tiền thân là quán Bão* Phần vậy là 59k nha. Trưa từ 10h-14h, chiều từ 16h-19h. À,có sữa hạt sen ngon lắmm. #food #foodpic #foodporn #foodholic #yummy #deliciuous'
+#     ]
+#     preprocessed_texts = preprocessor.process_batch(sample_texts, correct_errors=True)
+#     preprocessor.close_vncorenlp()
+#     print(preprocessed_texts)

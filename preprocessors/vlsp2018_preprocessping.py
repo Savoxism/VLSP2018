@@ -32,7 +32,7 @@ class VLSP2018Loader:
     
     @staticmethod
     def preprocess_and_tokenize(text_data, preprocessor, tokenizer, batch_size, max_length):
-        print('[INFO] Preprocessing and tokenizing text data...')
+        # print('[INFO] Preprocessing and tokenizing text data...')
         def transform_each_batch(batch):
             preprocessed_batch = preprocessor.process_batch(batch)
             return tokenizer(preprocessed_batch, max_length=max_length, padding='max_length', truncation=True)
@@ -45,7 +45,7 @@ class VLSP2018Loader:
     
     @staticmethod
     def labels_to_flatten_onehot(datasets):
-        print('[INFO] Transforming "Aspect#Categoy,Polarity" labels to flattened one-hot encoding...')
+        # print('[INFO] Transforming "Aspect#Categoy,Polarity" labels to flattened one-hot encoding...')
         model_input_names = ['input_ids', 'token_type_ids', 'attention_mask']
         label_columns = [col for col in datasets['train'].column_names if col not in ['Review', *model_input_names]]
         
@@ -85,19 +85,13 @@ class VLSP2018Parser:
                 for review, data in self.reviews[dataset]:
                     writer.writerow([review] + [data.get(cat, 0) for cat in self.aspect_categories])
                     
-if __name__ == "__main__":
-    # hotel_file = 'datasets/vlsp2018_hotel/train.txt'
-    # VLSP2018Parser(hotel_file).txt_to_csv()
-    
-    # restaurant_file = "datasets/vlsp2018_restaurant/train.txt"
-    # VLSP2018Parser(restaurant_file).txt_to_csv()  
-    
-    # Hotel Domain
-    hotel_train_path = 'datasets/vlsp2018_hotel/1-VLSP2018-SA-Hotel-train.txt'
-    hotel_dev_path = 'datasets/vlsp2018_hotel/2-VLSP2018-SA-Hotel-dev.txt'
-    hotel_test_path = 'datasets/vlsp2018_hotel/3-VLSP2018-SA-Hotel-test.txt'
-    vlsp_hotel_parser = VLSP2018Parser(hotel_train_path, hotel_dev_path, hotel_test_path)
-    vlsp_hotel_parser.txt_to_csv()
+# if __name__ == "__main__":
+#     # Hotel Domain
+#     hotel_train_path = '../datasets/vlsp2018_hotel/1-VLSP2018-SA-Hotel-train.txt'
+#     hotel_dev_path = '../datasets/vlsp2018_hotel/2-VLSP2018-SA-Hotel-dev.txt'
+#     hotel_test_path = '../datasets/vlsp2018_hotel/3-VLSP2018-SA-Hotel-test.txt'
+#     vlsp_hotel_parser = VLSP2018Parser(hotel_train_path, hotel_dev_path, hotel_test_path)
+#     vlsp_hotel_parser.txt_to_csv()
     
 
     
